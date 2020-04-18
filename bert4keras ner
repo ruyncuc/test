@@ -1,0 +1,2033 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "name": "欢迎使用 Colaboratory",
+      "provenance": [],
+      "collapsed_sections": [],
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "accelerator": "GPU"
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/ruyncuc/test/blob/master/bert4keras%20ner\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "94-X9jY-IxF3",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 51
+        },
+        "outputId": "806f13c7-d9ef-4bb4-83be-80bc7e27284e"
+      },
+      "source": [
+        "%tensorflow_version 1.x\n",
+        "import tensorflow as tf\n",
+        "tf.__version__"
+      ],
+      "execution_count": 1,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "TensorFlow 1.x selected.\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "'1.15.2'"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 1
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "LiFGvoOLIzbE",
+        "colab_type": "code",
+        "outputId": "4c906c52-886f-4b68-b52d-9fc4a713b7cd",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 122
+        }
+      },
+      "source": [
+        "from google.colab import drive\n",
+        "drive.mount('/content/drive')"
+      ],
+      "execution_count": 2,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Go to this URL in a browser: https://accounts.google.com/o/oauth2/auth?client_id=947318989803-6bn6qk8qdgf4n4g3pfee6491hc0brc4i.apps.googleusercontent.com&redirect_uri=urn%3aietf%3awg%3aoauth%3a2.0%3aoob&response_type=code&scope=email%20https%3a%2f%2fwww.googleapis.com%2fauth%2fdocs.test%20https%3a%2f%2fwww.googleapis.com%2fauth%2fdrive%20https%3a%2f%2fwww.googleapis.com%2fauth%2fdrive.photos.readonly%20https%3a%2f%2fwww.googleapis.com%2fauth%2fpeopleapi.readonly\n",
+            "\n",
+            "Enter your authorization code:\n",
+            "··········\n",
+            "Mounted at /content/drive\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "s5manzVfL4Vs",
+        "colab_type": "code",
+        "outputId": "3f697450-0817-43f4-e95f-b86a4989b352",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 204
+        }
+      },
+      "source": [
+        "! wget http://s3.bmio.net/kashgari/china-people-daily-ner-corpus.tar.gz"
+      ],
+      "execution_count": 3,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "--2020-04-17 04:36:24--  http://s3.bmio.net/kashgari/china-people-daily-ner-corpus.tar.gz\n",
+            "Resolving s3.bmio.net (s3.bmio.net)... 52.219.0.199\n",
+            "Connecting to s3.bmio.net (s3.bmio.net)|52.219.0.199|:80... connected.\n",
+            "HTTP request sent, awaiting response... 200 OK\n",
+            "Length: 2443473 (2.3M) [application/x-gzip]\n",
+            "Saving to: ‘china-people-daily-ner-corpus.tar.gz’\n",
+            "\n",
+            "china-people-daily- 100%[===================>]   2.33M  3.43MB/s    in 0.7s    \n",
+            "\n",
+            "2020-04-17 04:36:25 (3.43 MB/s) - ‘china-people-daily-ner-corpus.tar.gz’ saved [2443473/2443473]\n",
+            "\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "al7AJUuOOnKA",
+        "colab_type": "code",
+        "outputId": "d892433e-5d5c-4356-f041-610087b8db6f",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 153
+        }
+      },
+      "source": [
+        "! tar -zxvf china-people-daily-ner-corpus.tar.gz"
+      ],
+      "execution_count": 4,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "./._china-people-daily-ner-corpus\n",
+            "china-people-daily-ner-corpus/\n",
+            "china-people-daily-ner-corpus/._example.dev\n",
+            "china-people-daily-ner-corpus/example.dev\n",
+            "china-people-daily-ner-corpus/._example.train\n",
+            "china-people-daily-ner-corpus/example.train\n",
+            "china-people-daily-ner-corpus/._example.test\n",
+            "china-people-daily-ner-corpus/example.test\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "j482Cf9mPEWm",
+        "colab_type": "code",
+        "outputId": "7393e1c4-e683-4d83-91f9-559dd8c26866",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 326
+        }
+      },
+      "source": [
+        "!pip install bert4keras"
+      ],
+      "execution_count": 5,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Collecting bert4keras\n",
+            "  Downloading https://files.pythonhosted.org/packages/4c/74/2ae8881809ba94de837063eb569de4a9f78197324e7267bdf9019503e73e/bert4keras-0.7.3.tar.gz\n",
+            "Requirement already satisfied: keras in /usr/local/lib/python3.6/dist-packages (from bert4keras) (2.3.1)\n",
+            "Requirement already satisfied: numpy>=1.9.1 in /usr/local/lib/python3.6/dist-packages (from keras->bert4keras) (1.18.2)\n",
+            "Requirement already satisfied: keras-preprocessing>=1.0.5 in /usr/local/lib/python3.6/dist-packages (from keras->bert4keras) (1.1.0)\n",
+            "Requirement already satisfied: keras-applications>=1.0.6 in /usr/local/lib/python3.6/dist-packages (from keras->bert4keras) (1.0.8)\n",
+            "Requirement already satisfied: pyyaml in /usr/local/lib/python3.6/dist-packages (from keras->bert4keras) (3.13)\n",
+            "Requirement already satisfied: h5py in /usr/local/lib/python3.6/dist-packages (from keras->bert4keras) (2.10.0)\n",
+            "Requirement already satisfied: scipy>=0.14 in /usr/local/lib/python3.6/dist-packages (from keras->bert4keras) (1.4.1)\n",
+            "Requirement already satisfied: six>=1.9.0 in /usr/local/lib/python3.6/dist-packages (from keras->bert4keras) (1.12.0)\n",
+            "Building wheels for collected packages: bert4keras\n",
+            "  Building wheel for bert4keras (setup.py) ... \u001b[?25l\u001b[?25hdone\n",
+            "  Created wheel for bert4keras: filename=bert4keras-0.7.3-cp36-none-any.whl size=35440 sha256=a41c585e806009c4530dda590996209e263172a7ffb6e6737fd15d67a1d50ce2\n",
+            "  Stored in directory: /root/.cache/pip/wheels/1c/85/90/765bba4e2b5ea63654914564156c98c0bb2744da53e14233e4\n",
+            "Successfully built bert4keras\n",
+            "Installing collected packages: bert4keras\n",
+            "Successfully installed bert4keras-0.7.3\n"
+          ],
+          "name": "stdout"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "lQDblWzqblP2",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 1000
+        },
+        "outputId": "71957fff-c4d1-4993-a939-848f088ff5b9"
+      },
+      "source": [
+        "#! -*- coding: utf-8 -*-\n",
+        "# 用CRF做中文命名实体识别\n",
+        "# 数据集 http://s3.bmio.net/kashgari/china-people-daily-ner-corpus.tar.gz\n",
+        "# 实测验证集的F1可以到96.18%，测试集的F1可以到95.35%\n",
+        "\n",
+        "import numpy as np\n",
+        "from bert4keras.backend import keras, K\n",
+        "from bert4keras.models import build_transformer_model\n",
+        "from bert4keras.tokenizers import Tokenizer\n",
+        "from bert4keras.optimizers import Adam\n",
+        "from bert4keras.snippets import sequence_padding, DataGenerator\n",
+        "from bert4keras.snippets import open\n",
+        "from bert4keras.layers import ConditionalRandomField\n",
+        "from keras.layers import Dense\n",
+        "from keras.models import Model\n",
+        "from tqdm import tqdm\n",
+        "\n",
+        "maxlen = 256\n",
+        "epochs = 10\n",
+        "batch_size = 32\n",
+        "bert_layers = 12\n",
+        "learing_rate = 1e-5  # bert_layers越小，学习率应该要越大\n",
+        "crf_lr_multiplier = 1000  # 必要时扩大CRF层的学习率\n",
+        "\n",
+        "# bert配置\n",
+        "config_path = '/content/drive/My Drive/chinese_L-12_H-768_A-12/bert_config.json'\n",
+        "checkpoint_path = '/content/drive/My Drive/chinese_L-12_H-768_A-12/bert_model.ckpt'\n",
+        "dict_path = '/content/drive/My Drive/chinese_L-12_H-768_A-12/vocab.txt'\n",
+        "\n",
+        "\n",
+        "def load_data(filename):\n",
+        "    D = []\n",
+        "    with open(filename, encoding='utf-8') as f:\n",
+        "        f = f.read()\n",
+        "        for l in f.split('\\n\\n'):\n",
+        "            if not l:\n",
+        "                continue\n",
+        "            d, last_flag = [], ''\n",
+        "            for c in l.split('\\n'):\n",
+        "                char, this_flag = c.split(' ')\n",
+        "                if this_flag == 'O' and last_flag == 'O':\n",
+        "                    d[-1][0] += char\n",
+        "                elif this_flag == 'O' and last_flag != 'O':\n",
+        "                    d.append([char, 'O'])\n",
+        "                elif this_flag[:1] == 'B':\n",
+        "                    d.append([char, this_flag[2:]])\n",
+        "                else:\n",
+        "                    d[-1][0] += char\n",
+        "                last_flag = this_flag\n",
+        "            D.append(d)\n",
+        "    return D\n",
+        "\n",
+        "\n",
+        "# 标注数据\n",
+        "train_data = load_data('/content/china-people-daily-ner-corpus/example.train')\n",
+        "valid_data = load_data('/content/china-people-daily-ner-corpus/example.dev')\n",
+        "test_data = load_data('/content/china-people-daily-ner-corpus/example.test')\n",
+        "\n",
+        "# 建立分词器\n",
+        "tokenizer = Tokenizer(dict_path, do_lower_case=True)\n",
+        "\n",
+        "# 类别映射\n",
+        "labels = ['PER', 'LOC', 'ORG']\n",
+        "id2label = dict(enumerate(labels))\n",
+        "label2id = {j: i for i, j in id2label.items()}\n",
+        "num_labels = len(labels) * 2 + 1\n",
+        "\n",
+        "\n",
+        "class data_generator(DataGenerator):\n",
+        "    \"\"\"数据生成器\n",
+        "    \"\"\"\n",
+        "    def __iter__(self, random=False):\n",
+        "        batch_token_ids, batch_segment_ids, batch_labels = [], [], []\n",
+        "        for is_end, item in self.sample(random):\n",
+        "            token_ids, labels = [tokenizer._token_start_id], [0]\n",
+        "            for w, l in item:\n",
+        "                w_token_ids = tokenizer.encode(w)[0][1:-1]\n",
+        "                if len(token_ids) + len(w_token_ids) < maxlen:\n",
+        "                    token_ids += w_token_ids\n",
+        "                    if l == 'O':\n",
+        "                        labels += [0] * len(w_token_ids)\n",
+        "                    else:\n",
+        "                        B = label2id[l] * 2 + 1\n",
+        "                        I = label2id[l] * 2 + 2\n",
+        "                        labels += ([B] + [I] * (len(w_token_ids) - 1))\n",
+        "                else:\n",
+        "                    break\n",
+        "            token_ids += [tokenizer._token_end_id]\n",
+        "            labels += [0]\n",
+        "            segment_ids = [0] * len(token_ids)\n",
+        "            batch_token_ids.append(token_ids)\n",
+        "            batch_segment_ids.append(segment_ids)\n",
+        "            batch_labels.append(labels)\n",
+        "            if len(batch_token_ids) == self.batch_size or is_end:\n",
+        "                batch_token_ids = sequence_padding(batch_token_ids)\n",
+        "                batch_segment_ids = sequence_padding(batch_segment_ids)\n",
+        "                batch_labels = sequence_padding(batch_labels)\n",
+        "                yield [batch_token_ids, batch_segment_ids], batch_labels\n",
+        "                batch_token_ids, batch_segment_ids, batch_labels = [], [], []\n",
+        "\n",
+        "\n",
+        "\"\"\"\n",
+        "后面的代码使用的是bert类型的模型，如果你用的是albert，那么前几行请改为：\n",
+        "model = build_transformer_model(\n",
+        "    config_path,\n",
+        "    checkpoint_path,\n",
+        "    model='albert',\n",
+        ")\n",
+        "output_layer = 'Transformer-FeedForward-Norm'\n",
+        "output = model.get_layer(output_layer).get_output_at(bert_layers - 1)\n",
+        "\"\"\"\n",
+        "\n",
+        "model = build_transformer_model(\n",
+        "    config_path,\n",
+        "    checkpoint_path,\n",
+        ")\n",
+        "\n",
+        "output_layer = 'Transformer-%s-FeedForward-Norm' % (bert_layers - 1)\n",
+        "output = model.get_layer(output_layer).output\n",
+        "output = Dense(num_labels)(output)\n",
+        "CRF = ConditionalRandomField(lr_multiplier=crf_lr_multiplier)\n",
+        "output = CRF(output)\n",
+        "\n",
+        "model = Model(model.input, output)\n",
+        "model.summary()\n",
+        "\n",
+        "model.compile(\n",
+        "    loss=CRF.sparse_loss,\n",
+        "    optimizer=Adam(learing_rate),\n",
+        "    metrics=[CRF.sparse_accuracy]\n",
+        ")\n",
+        "\n",
+        "\n",
+        "def viterbi_decode(nodes, trans):\n",
+        "    \"\"\"Viterbi算法求最优路径\n",
+        "    其中nodes.shape=[seq_len, num_labels],\n",
+        "        trans.shape=[num_labels, num_labels].\n",
+        "    \"\"\"\n",
+        "    labels = np.arange(num_labels).reshape((1, -1))\n",
+        "    scores = nodes[0].reshape((-1, 1))\n",
+        "    scores[1:] -= np.inf  # 第一个标签必然是0\n",
+        "    paths = labels\n",
+        "    for l in range(1, len(nodes)):\n",
+        "        M = scores + trans + nodes[l].reshape((1, -1))\n",
+        "        idxs = M.argmax(0)\n",
+        "        scores = M.max(0).reshape((-1, 1))\n",
+        "        paths = np.concatenate([paths[:, idxs], labels], 0)\n",
+        "    return paths[:, scores[:, 0].argmax()]\n",
+        "\n",
+        "\n",
+        "def named_entity_recognize(text):\n",
+        "    \"\"\"命名实体识别函数\n",
+        "    \"\"\"\n",
+        "    tokens = tokenizer.tokenize(text)\n",
+        "    while len(tokens) > 512:\n",
+        "        tokens.pop(-2)\n",
+        "    mapping = tokenizer.rematch(text, tokens)\n",
+        "    token_ids = tokenizer.tokens_to_ids(tokens)\n",
+        "    segment_ids = [0] * len(token_ids)\n",
+        "    nodes = model.predict([[token_ids], [segment_ids]])[0]\n",
+        "    trans = K.eval(CRF.trans)\n",
+        "    labels = viterbi_decode(nodes, trans)\n",
+        "    entities, starting = [], False\n",
+        "    for i, label in enumerate(labels):\n",
+        "        if label > 0:\n",
+        "            if label % 2 == 1:\n",
+        "                starting = True\n",
+        "                entities.append([[i], id2label[(label - 1) // 2]])\n",
+        "            elif starting:\n",
+        "                entities[-1][0].append(i)\n",
+        "            else:\n",
+        "                starting = False\n",
+        "        else:\n",
+        "            starting = False\n",
+        "\n",
+        "    return [\n",
+        "        (text[mapping[w[0]][0]:mapping[w[-1]][-1] + 1], l) for w, l in entities\n",
+        "    ]\n",
+        "\n",
+        "\n",
+        "def evaluate(data):\n",
+        "    \"\"\"评测函数\n",
+        "    \"\"\"\n",
+        "    X, Y, Z = 1e-10, 1e-10, 1e-10\n",
+        "    for d in tqdm(data):\n",
+        "        text = ''.join([i[0] for i in d])\n",
+        "        R = set(named_entity_recognize(text))\n",
+        "        T = set([tuple(i) for i in d if i[1] != 'O'])\n",
+        "        X += len(R & T)\n",
+        "        Y += len(R)\n",
+        "        Z += len(T)\n",
+        "    f1, precision, recall = 2 * X / (Y + Z), X / Y, X / Z\n",
+        "    return f1, precision, recall\n",
+        "\n",
+        "\n",
+        "class Evaluate(keras.callbacks.Callback):\n",
+        "    def __init__(self):\n",
+        "        self.best_val_f1 = 0\n",
+        "\n",
+        "    def on_epoch_end(self, epoch, logs=None):\n",
+        "        trans = K.eval(CRF.trans)\n",
+        "        print(trans)\n",
+        "        f1, precision, recall = evaluate(valid_data)\n",
+        "        # 保存最优\n",
+        "        if f1 >= self.best_val_f1:\n",
+        "            self.best_val_f1 = f1\n",
+        "            model.save_weights('./best_model.weights')\n",
+        "        print(\n",
+        "            'valid:  f1: %.5f, precision: %.5f, recall: %.5f, best f1: %.5f\\n' %\n",
+        "            (f1, precision, recall, self.best_val_f1)\n",
+        "        )\n",
+        "        f1, precision, recall = evaluate(test_data)\n",
+        "        print(\n",
+        "            'test:  f1: %.5f, precision: %.5f, recall: %.5f\\n' %\n",
+        "            (f1, precision, recall)\n",
+        "        )\n",
+        "\n",
+        "\n",
+        "if __name__ == '__main__':\n",
+        "\n",
+        "    evaluator = Evaluate()\n",
+        "    train_generator = data_generator(train_data, batch_size)\n",
+        "\n",
+        "    model.fit_generator(\n",
+        "        train_generator.forfit(),\n",
+        "        steps_per_epoch=len(train_generator),\n",
+        "        epochs=epochs,\n",
+        "        callbacks=[evaluator]\n",
+        "    )\n",
+        "\n",
+        "else:\n",
+        "\n",
+        "    model.load_weights('./best_model.weights')"
+      ],
+      "execution_count": 6,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "Using TensorFlow backend.\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "WARNING:tensorflow:From /tensorflow-1.15.2/python3.6/tensorflow_core/python/ops/resource_variable_ops.py:1630: calling BaseResourceVariable.__init__ (from tensorflow.python.ops.resource_variable_ops) with constraint is deprecated and will be removed in a future version.\n",
+            "Instructions for updating:\n",
+            "If using Keras pass *_constraint arguments to layers.\n",
+            "Model: \"model_2\"\n",
+            "__________________________________________________________________________________________________\n",
+            "Layer (type)                    Output Shape         Param #     Connected to                     \n",
+            "==================================================================================================\n",
+            "Input-Token (InputLayer)        (None, None)         0                                            \n",
+            "__________________________________________________________________________________________________\n",
+            "Input-Segment (InputLayer)      (None, None)         0                                            \n",
+            "__________________________________________________________________________________________________\n",
+            "Embedding-Token (Embedding)     (None, None, 768)    16226304    Input-Token[0][0]                \n",
+            "__________________________________________________________________________________________________\n",
+            "Embedding-Segment (Embedding)   (None, None, 768)    1536        Input-Segment[0][0]              \n",
+            "__________________________________________________________________________________________________\n",
+            "Embedding-Token-Segment (Add)   (None, None, 768)    0           Embedding-Token[0][0]            \n",
+            "                                                                 Embedding-Segment[0][0]          \n",
+            "__________________________________________________________________________________________________\n",
+            "Embedding-Position (PositionEmb (None, None, 768)    393216      Embedding-Token-Segment[0][0]    \n",
+            "__________________________________________________________________________________________________\n",
+            "Embedding-Norm (LayerNormalizat (None, None, 768)    1536        Embedding-Position[0][0]         \n",
+            "__________________________________________________________________________________________________\n",
+            "Embedding-Dropout (Dropout)     (None, None, 768)    0           Embedding-Norm[0][0]             \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-0-MultiHeadSelfAtte (None, None, 768)    2362368     Embedding-Dropout[0][0]          \n",
+            "                                                                 Embedding-Dropout[0][0]          \n",
+            "                                                                 Embedding-Dropout[0][0]          \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-0-MultiHeadSelfAtte (None, None, 768)    0           Transformer-0-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-0-MultiHeadSelfAtte (None, None, 768)    0           Embedding-Dropout[0][0]          \n",
+            "                                                                 Transformer-0-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-0-MultiHeadSelfAtte (None, None, 768)    1536        Transformer-0-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-0-FeedForward (Feed (None, None, 768)    4722432     Transformer-0-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-0-FeedForward-Dropo (None, None, 768)    0           Transformer-0-FeedForward[0][0]  \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-0-FeedForward-Add ( (None, None, 768)    0           Transformer-0-MultiHeadSelfAttent\n",
+            "                                                                 Transformer-0-FeedForward-Dropout\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-0-FeedForward-Norm  (None, None, 768)    1536        Transformer-0-FeedForward-Add[0][\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-1-MultiHeadSelfAtte (None, None, 768)    2362368     Transformer-0-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-0-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-0-FeedForward-Norm[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-1-MultiHeadSelfAtte (None, None, 768)    0           Transformer-1-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-1-MultiHeadSelfAtte (None, None, 768)    0           Transformer-0-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-1-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-1-MultiHeadSelfAtte (None, None, 768)    1536        Transformer-1-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-1-FeedForward (Feed (None, None, 768)    4722432     Transformer-1-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-1-FeedForward-Dropo (None, None, 768)    0           Transformer-1-FeedForward[0][0]  \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-1-FeedForward-Add ( (None, None, 768)    0           Transformer-1-MultiHeadSelfAttent\n",
+            "                                                                 Transformer-1-FeedForward-Dropout\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-1-FeedForward-Norm  (None, None, 768)    1536        Transformer-1-FeedForward-Add[0][\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-2-MultiHeadSelfAtte (None, None, 768)    2362368     Transformer-1-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-1-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-1-FeedForward-Norm[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-2-MultiHeadSelfAtte (None, None, 768)    0           Transformer-2-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-2-MultiHeadSelfAtte (None, None, 768)    0           Transformer-1-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-2-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-2-MultiHeadSelfAtte (None, None, 768)    1536        Transformer-2-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-2-FeedForward (Feed (None, None, 768)    4722432     Transformer-2-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-2-FeedForward-Dropo (None, None, 768)    0           Transformer-2-FeedForward[0][0]  \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-2-FeedForward-Add ( (None, None, 768)    0           Transformer-2-MultiHeadSelfAttent\n",
+            "                                                                 Transformer-2-FeedForward-Dropout\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-2-FeedForward-Norm  (None, None, 768)    1536        Transformer-2-FeedForward-Add[0][\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-3-MultiHeadSelfAtte (None, None, 768)    2362368     Transformer-2-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-2-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-2-FeedForward-Norm[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-3-MultiHeadSelfAtte (None, None, 768)    0           Transformer-3-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-3-MultiHeadSelfAtte (None, None, 768)    0           Transformer-2-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-3-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-3-MultiHeadSelfAtte (None, None, 768)    1536        Transformer-3-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-3-FeedForward (Feed (None, None, 768)    4722432     Transformer-3-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-3-FeedForward-Dropo (None, None, 768)    0           Transformer-3-FeedForward[0][0]  \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-3-FeedForward-Add ( (None, None, 768)    0           Transformer-3-MultiHeadSelfAttent\n",
+            "                                                                 Transformer-3-FeedForward-Dropout\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-3-FeedForward-Norm  (None, None, 768)    1536        Transformer-3-FeedForward-Add[0][\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-4-MultiHeadSelfAtte (None, None, 768)    2362368     Transformer-3-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-3-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-3-FeedForward-Norm[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-4-MultiHeadSelfAtte (None, None, 768)    0           Transformer-4-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-4-MultiHeadSelfAtte (None, None, 768)    0           Transformer-3-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-4-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-4-MultiHeadSelfAtte (None, None, 768)    1536        Transformer-4-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-4-FeedForward (Feed (None, None, 768)    4722432     Transformer-4-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-4-FeedForward-Dropo (None, None, 768)    0           Transformer-4-FeedForward[0][0]  \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-4-FeedForward-Add ( (None, None, 768)    0           Transformer-4-MultiHeadSelfAttent\n",
+            "                                                                 Transformer-4-FeedForward-Dropout\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-4-FeedForward-Norm  (None, None, 768)    1536        Transformer-4-FeedForward-Add[0][\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-5-MultiHeadSelfAtte (None, None, 768)    2362368     Transformer-4-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-4-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-4-FeedForward-Norm[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-5-MultiHeadSelfAtte (None, None, 768)    0           Transformer-5-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-5-MultiHeadSelfAtte (None, None, 768)    0           Transformer-4-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-5-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-5-MultiHeadSelfAtte (None, None, 768)    1536        Transformer-5-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-5-FeedForward (Feed (None, None, 768)    4722432     Transformer-5-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-5-FeedForward-Dropo (None, None, 768)    0           Transformer-5-FeedForward[0][0]  \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-5-FeedForward-Add ( (None, None, 768)    0           Transformer-5-MultiHeadSelfAttent\n",
+            "                                                                 Transformer-5-FeedForward-Dropout\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-5-FeedForward-Norm  (None, None, 768)    1536        Transformer-5-FeedForward-Add[0][\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-6-MultiHeadSelfAtte (None, None, 768)    2362368     Transformer-5-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-5-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-5-FeedForward-Norm[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-6-MultiHeadSelfAtte (None, None, 768)    0           Transformer-6-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-6-MultiHeadSelfAtte (None, None, 768)    0           Transformer-5-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-6-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-6-MultiHeadSelfAtte (None, None, 768)    1536        Transformer-6-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-6-FeedForward (Feed (None, None, 768)    4722432     Transformer-6-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-6-FeedForward-Dropo (None, None, 768)    0           Transformer-6-FeedForward[0][0]  \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-6-FeedForward-Add ( (None, None, 768)    0           Transformer-6-MultiHeadSelfAttent\n",
+            "                                                                 Transformer-6-FeedForward-Dropout\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-6-FeedForward-Norm  (None, None, 768)    1536        Transformer-6-FeedForward-Add[0][\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-7-MultiHeadSelfAtte (None, None, 768)    2362368     Transformer-6-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-6-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-6-FeedForward-Norm[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-7-MultiHeadSelfAtte (None, None, 768)    0           Transformer-7-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-7-MultiHeadSelfAtte (None, None, 768)    0           Transformer-6-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-7-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-7-MultiHeadSelfAtte (None, None, 768)    1536        Transformer-7-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-7-FeedForward (Feed (None, None, 768)    4722432     Transformer-7-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-7-FeedForward-Dropo (None, None, 768)    0           Transformer-7-FeedForward[0][0]  \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-7-FeedForward-Add ( (None, None, 768)    0           Transformer-7-MultiHeadSelfAttent\n",
+            "                                                                 Transformer-7-FeedForward-Dropout\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-7-FeedForward-Norm  (None, None, 768)    1536        Transformer-7-FeedForward-Add[0][\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-8-MultiHeadSelfAtte (None, None, 768)    2362368     Transformer-7-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-7-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-7-FeedForward-Norm[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-8-MultiHeadSelfAtte (None, None, 768)    0           Transformer-8-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-8-MultiHeadSelfAtte (None, None, 768)    0           Transformer-7-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-8-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-8-MultiHeadSelfAtte (None, None, 768)    1536        Transformer-8-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-8-FeedForward (Feed (None, None, 768)    4722432     Transformer-8-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-8-FeedForward-Dropo (None, None, 768)    0           Transformer-8-FeedForward[0][0]  \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-8-FeedForward-Add ( (None, None, 768)    0           Transformer-8-MultiHeadSelfAttent\n",
+            "                                                                 Transformer-8-FeedForward-Dropout\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-8-FeedForward-Norm  (None, None, 768)    1536        Transformer-8-FeedForward-Add[0][\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-9-MultiHeadSelfAtte (None, None, 768)    2362368     Transformer-8-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-8-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-8-FeedForward-Norm[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-9-MultiHeadSelfAtte (None, None, 768)    0           Transformer-9-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-9-MultiHeadSelfAtte (None, None, 768)    0           Transformer-8-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-9-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-9-MultiHeadSelfAtte (None, None, 768)    1536        Transformer-9-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-9-FeedForward (Feed (None, None, 768)    4722432     Transformer-9-MultiHeadSelfAttent\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-9-FeedForward-Dropo (None, None, 768)    0           Transformer-9-FeedForward[0][0]  \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-9-FeedForward-Add ( (None, None, 768)    0           Transformer-9-MultiHeadSelfAttent\n",
+            "                                                                 Transformer-9-FeedForward-Dropout\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-9-FeedForward-Norm  (None, None, 768)    1536        Transformer-9-FeedForward-Add[0][\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-10-MultiHeadSelfAtt (None, None, 768)    2362368     Transformer-9-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-9-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-9-FeedForward-Norm[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-10-MultiHeadSelfAtt (None, None, 768)    0           Transformer-10-MultiHeadSelfAtten\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-10-MultiHeadSelfAtt (None, None, 768)    0           Transformer-9-FeedForward-Norm[0]\n",
+            "                                                                 Transformer-10-MultiHeadSelfAtten\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-10-MultiHeadSelfAtt (None, None, 768)    1536        Transformer-10-MultiHeadSelfAtten\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-10-FeedForward (Fee (None, None, 768)    4722432     Transformer-10-MultiHeadSelfAtten\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-10-FeedForward-Drop (None, None, 768)    0           Transformer-10-FeedForward[0][0] \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-10-FeedForward-Add  (None, None, 768)    0           Transformer-10-MultiHeadSelfAtten\n",
+            "                                                                 Transformer-10-FeedForward-Dropou\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-10-FeedForward-Norm (None, None, 768)    1536        Transformer-10-FeedForward-Add[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-11-MultiHeadSelfAtt (None, None, 768)    2362368     Transformer-10-FeedForward-Norm[0\n",
+            "                                                                 Transformer-10-FeedForward-Norm[0\n",
+            "                                                                 Transformer-10-FeedForward-Norm[0\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-11-MultiHeadSelfAtt (None, None, 768)    0           Transformer-11-MultiHeadSelfAtten\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-11-MultiHeadSelfAtt (None, None, 768)    0           Transformer-10-FeedForward-Norm[0\n",
+            "                                                                 Transformer-11-MultiHeadSelfAtten\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-11-MultiHeadSelfAtt (None, None, 768)    1536        Transformer-11-MultiHeadSelfAtten\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-11-FeedForward (Fee (None, None, 768)    4722432     Transformer-11-MultiHeadSelfAtten\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-11-FeedForward-Drop (None, None, 768)    0           Transformer-11-FeedForward[0][0] \n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-11-FeedForward-Add  (None, None, 768)    0           Transformer-11-MultiHeadSelfAtten\n",
+            "                                                                 Transformer-11-FeedForward-Dropou\n",
+            "__________________________________________________________________________________________________\n",
+            "Transformer-11-FeedForward-Norm (None, None, 768)    1536        Transformer-11-FeedForward-Add[0]\n",
+            "__________________________________________________________________________________________________\n",
+            "dense_73 (Dense)                (None, None, 7)      5383        Transformer-11-FeedForward-Norm[0\n",
+            "__________________________________________________________________________________________________\n",
+            "conditional_random_field_1 (Con (None, None, 7)      49          dense_73[0][0]                   \n",
+            "==================================================================================================\n",
+            "Total params: 101,682,488\n",
+            "Trainable params: 101,682,488\n",
+            "Non-trainable params: 0\n",
+            "__________________________________________________________________________________________________\n",
+            "WARNING:tensorflow:From /tensorflow-1.15.2/python3.6/tensorflow_core/python/ops/math_ops.py:2509: where (from tensorflow.python.ops.array_ops) is deprecated and will be removed in a future version.\n",
+            "Instructions for updating:\n",
+            "Use tf.where in 2.0, which has the same broadcast rule as np.where\n",
+            "WARNING:tensorflow:From /usr/local/lib/python3.6/dist-packages/keras/backend/tensorflow_backend.py:422: The name tf.global_variables is deprecated. Please use tf.compat.v1.global_variables instead.\n",
+            "\n",
+            "Epoch 1/10\n",
+            "652/652 [==============================] - 401s 614ms/step - loss: 3.2541 - sparse_accuracy: 0.9649\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\r  0%|          | 0/2318 [00:00<?, ?it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 8.82113934e-01  8.06871831e-01 -7.07906246e-01  3.78527910e-01\n",
+            "  -6.93569601e-01  5.53497612e-01 -2.33846974e+00]\n",
+            " [-4.47493374e-01 -5.61505198e-01  1.17973447e+00  1.05945475e-01\n",
+            "  -2.56036013e-01 -9.72825408e-01 -3.38112861e-01]\n",
+            " [ 1.42224982e-01 -4.96532083e-01  1.85505718e-01  3.53701502e-01\n",
+            "  -4.71545905e-01 -8.09272289e-01 -4.18169469e-01]\n",
+            " [-9.29413021e-01  1.38057828e-01  1.49775416e-01 -2.63922900e-01\n",
+            "   1.57484257e+00 -6.27184570e-01 -2.22479820e+00]\n",
+            " [-2.96874017e-01 -3.45458180e-01 -5.05396612e-02  2.29382468e-03\n",
+            "   1.74797797e+00 -7.99152136e-01 -2.57434869e+00]\n",
+            " [-1.41552520e+00 -6.01895861e-02 -7.08023250e-01 -8.35282147e-01\n",
+            "  -2.44353867e+00 -1.00702547e-01  1.52692425e+00]\n",
+            " [-1.15475810e+00 -8.95007432e-01 -6.82921633e-02 -4.14822638e-01\n",
+            "  -2.16682053e+00 -1.31414580e+00  1.11403430e+00]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:37<00:00, 62.57it/s]\n",
+            "  0%|          | 7/4636 [00:00<01:07, 68.57it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.93443, precision: 0.93830, recall: 0.93059, best f1: 0.93443\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:08<00:00, 67.46it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.92019, precision: 0.92443, recall: 0.91600\n",
+            "\n",
+            "Epoch 2/10\n",
+            "652/652 [==============================] - 390s 598ms/step - loss: 0.5146 - sparse_accuracy: 0.9843\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 7/2318 [00:00<00:36, 63.62it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 0.9557852   0.8400909  -0.8407246   0.5295931  -1.0982106   0.77508366\n",
+            "  -2.8731942 ]\n",
+            " [-0.5786047  -0.5507873   1.3684514   0.06107088 -0.51846087 -1.0134159\n",
+            "  -0.54532576]\n",
+            " [ 0.06113375 -0.5637679   0.314643    0.3418542  -0.58493644 -0.8130531\n",
+            "  -0.4946636 ]\n",
+            " [-1.0957404   0.1029946   0.0893282  -0.35358045  1.9095345  -0.7231465\n",
+            "  -2.7433763 ]\n",
+            " [-0.6475365  -0.34188828 -0.12811624 -0.00914157  2.1859856  -0.73600966\n",
+            "  -3.2351122 ]\n",
+            " [-1.7638518  -0.12120849 -0.8185011  -1.0147814  -3.0475016  -0.2045927\n",
+            "   1.8747768 ]\n",
+            " [-1.540435   -1.0147059  -0.17508626 -0.6347916  -2.7446573  -1.8689184\n",
+            "   1.4854952 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:34<00:00, 67.76it/s]\n",
+            "  0%|          | 7/4636 [00:00<01:13, 63.15it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.95330, precision: 0.95821, recall: 0.94844, best f1: 0.95330\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:08<00:00, 67.76it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.94141, precision: 0.94440, recall: 0.93844\n",
+            "\n",
+            "Epoch 3/10\n",
+            "652/652 [==============================] - 389s 597ms/step - loss: 0.2809 - sparse_accuracy: 0.9863\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 7/2318 [00:00<00:37, 62.21it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.0028509   0.8980277  -0.9365666   0.63477856 -1.3903925   0.95243055\n",
+            "  -3.2402442 ]\n",
+            " [-0.7312027  -0.65782785  1.5523692   0.03357945 -0.7104988  -1.0355314\n",
+            "  -0.68727446]\n",
+            " [ 0.02383747 -0.612218    0.3939906   0.33527306 -0.67443925 -0.8106482\n",
+            "  -0.5527234 ]\n",
+            " [-1.2457947   0.07530031  0.04392092 -0.37480453  2.1316557  -0.7789436\n",
+            "  -3.0697355 ]\n",
+            " [-0.83977073 -0.31667665 -0.18330766 -0.0679107   2.382863   -0.76499295\n",
+            "  -3.6935852 ]\n",
+            " [-1.9020662  -0.17883159 -0.9088185  -1.1966131  -3.3937008  -0.23687178\n",
+            "   2.1094239 ]\n",
+            " [-1.7834289  -1.161583   -0.26077124 -0.7784176  -3.0828328  -2.1556222\n",
+            "   1.7076929 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:34<00:00, 68.02it/s]\n",
+            "  0%|          | 7/4636 [00:00<01:08, 68.07it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.95436, precision: 0.95207, recall: 0.95666, best f1: 0.95436\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:08<00:00, 67.79it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.94688, precision: 0.94261, recall: 0.95120\n",
+            "\n",
+            "Epoch 4/10\n",
+            "652/652 [==============================] - 387s 594ms/step - loss: 0.1741 - sparse_accuracy: 0.9892\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 7/2318 [00:00<00:33, 69.39it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.0410135e+00  9.6867114e-01 -1.0133713e+00  7.1308321e-01\n",
+            "  -1.6089449e+00  1.0290637e+00 -3.5003636e+00]\n",
+            " [-8.5660493e-01 -7.6114339e-01  1.7120762e+00  1.1802408e-02\n",
+            "  -8.5647106e-01 -1.0575624e+00 -8.1520087e-01]\n",
+            " [-3.0475434e-02 -6.2682992e-01  4.7259447e-01  3.2677093e-01\n",
+            "  -7.3917210e-01 -8.1281286e-01 -6.0130727e-01]\n",
+            " [-1.3444588e+00  5.4569263e-02  2.5841326e-03 -3.4290290e-01\n",
+            "   2.2901151e+00 -8.3947086e-01 -3.2787163e+00]\n",
+            " [-9.4024807e-01 -3.4789121e-01 -2.4234533e-01 -4.3775499e-02\n",
+            "   2.5373659e+00 -9.4965458e-01 -4.0349255e+00]\n",
+            " [-2.0084362e+00 -2.3877260e-01 -1.0022000e+00 -1.4037459e+00\n",
+            "  -3.6727169e+00 -2.6163724e-01  2.2138033e+00]\n",
+            " [-1.9410286e+00 -1.3552288e+00 -3.5686392e-01 -8.9303547e-01\n",
+            "  -3.3664515e+00 -2.3831637e+00  1.8558375e+00]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:33<00:00, 69.33it/s]\n",
+            "  0%|          | 6/4636 [00:00<01:24, 55.08it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.95634, precision: 0.95405, recall: 0.95864, best f1: 0.95634\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:07<00:00, 68.63it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.94844, precision: 0.94377, recall: 0.95316\n",
+            "\n",
+            "Epoch 5/10\n",
+            "652/652 [==============================] - 389s 596ms/step - loss: 0.1086 - sparse_accuracy: 0.9909\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 7/2318 [00:00<00:33, 68.30it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.0773957   0.98585665 -1.0743341   0.8313596  -1.7807238   1.0195504\n",
+            "  -3.7440233 ]\n",
+            " [-0.93819684 -0.89785963  1.7951976  -0.00869452 -0.97618    -1.0726321\n",
+            "  -0.91815186]\n",
+            " [-0.07015129 -0.67189705  0.5259892   0.31937745 -0.8177857  -0.8098302\n",
+            "  -0.6416862 ]\n",
+            " [-1.3885319   0.03639003 -0.02985193 -0.36426303  2.4396396  -0.921089\n",
+            "  -3.480325  ]\n",
+            " [-1.0192643  -0.36292797 -0.28710532 -0.07553717  2.6354659  -0.83822507\n",
+            "  -4.313551  ]\n",
+            " [-2.0556738  -0.28444773 -1.0759635  -1.5624006  -3.8789537  -0.3034858\n",
+            "   2.2779016 ]\n",
+            " [-2.1366243  -1.4317784  -0.4212486  -1.0047361  -3.5698607  -2.495291\n",
+            "   1.9778563 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:33<00:00, 68.21it/s]\n",
+            "  0%|          | 6/4636 [00:00<01:20, 57.74it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.96192, precision: 0.96494, recall: 0.95892, best f1: 0.96192\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:07<00:00, 68.70it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95351, precision: 0.95499, recall: 0.95204\n",
+            "\n",
+            "Epoch 6/10\n",
+            "652/652 [==============================] - 388s 596ms/step - loss: 0.0853 - sparse_accuracy: 0.9917\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 7/2318 [00:00<00:33, 68.34it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.1054511   1.0215297  -1.1450005   0.89984137 -1.9431039   1.0680491\n",
+            "  -3.9892523 ]\n",
+            " [-1.0826833  -0.94037485  1.8969365  -0.02556618 -1.1177713  -1.0875415\n",
+            "  -1.0191319 ]\n",
+            " [-0.0990988  -0.78616035  0.6069126   0.31432346 -0.8987712  -0.79990864\n",
+            "  -0.6849633 ]\n",
+            " [-1.4623088   0.01663259 -0.06389638 -0.3053263   2.5635846  -1.0251055\n",
+            "  -3.695374  ]\n",
+            " [-1.021076   -0.28322613 -0.33586556 -0.14002147  2.679282   -0.97384775\n",
+            "  -4.6237016 ]\n",
+            " [-2.1873574  -0.33726016 -1.1580709  -1.7896131  -4.0896015  -0.27878416\n",
+            "   2.3834715 ]\n",
+            " [-2.2886522  -1.581513   -0.50126857 -1.0676004  -3.7762735  -2.5610924\n",
+            "   2.115704  ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:33<00:00, 68.59it/s]\n",
+            "  0%|          | 8/4636 [00:00<01:05, 70.96it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.96085, precision: 0.96222, recall: 0.95949, best f1: 0.96192\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:07<00:00, 68.65it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95426, precision: 0.95339, recall: 0.95513\n",
+            "\n",
+            "Epoch 7/10\n",
+            "652/652 [==============================] - 389s 597ms/step - loss: 0.0571 - sparse_accuracy: 0.9929\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 7/2318 [00:00<00:34, 66.65it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.1439407e+00  1.0073887e+00 -1.2161446e+00  8.6264694e-01\n",
+            "  -2.1152964e+00  1.1662357e+00 -4.2154570e+00]\n",
+            " [-1.2099156e+00 -1.0104195e+00  1.9952308e+00 -3.9267480e-02\n",
+            "  -1.2237107e+00 -1.1062512e+00 -1.1262589e+00]\n",
+            " [-1.6007376e-01 -8.5434574e-01  6.7672509e-01  3.1077373e-01\n",
+            "  -9.4426435e-01 -7.2985297e-01 -7.4867433e-01]\n",
+            " [-1.6075823e+00  1.0937931e-03 -9.6162833e-02 -2.7774137e-01\n",
+            "   2.6559222e+00 -1.1730562e+00 -3.8845515e+00]\n",
+            " [-1.0828370e+00 -1.9089250e-01 -3.9894587e-01 -1.2311237e-01\n",
+            "   2.7991986e+00 -1.0664319e+00 -4.8679028e+00]\n",
+            " [-2.2441170e+00 -3.8054094e-01 -1.2402505e+00 -2.0054407e+00\n",
+            "  -4.2262731e+00 -3.0630347e-01  2.4752116e+00]\n",
+            " [-2.3967679e+00 -1.6035366e+00 -5.7547438e-01 -1.1083437e+00\n",
+            "  -3.9534662e+00 -2.7608604e+00  2.1812534e+00]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:33<00:00, 69.60it/s]\n",
+            "  0%|          | 8/4636 [00:00<00:59, 77.40it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.96019, precision: 0.96376, recall: 0.95666, best f1: 0.96192\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:06<00:00, 69.93it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95276, precision: 0.95389, recall: 0.95162\n",
+            "\n",
+            "Epoch 8/10\n",
+            "652/652 [==============================] - 388s 594ms/step - loss: 0.0549 - sparse_accuracy: 0.9929\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 7/2318 [00:00<00:33, 68.47it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.1782075   1.0458109  -1.288005    0.929662   -2.2982595   1.1349363\n",
+            "  -4.4468355 ]\n",
+            " [-1.3005908  -1.0651727   2.116686   -0.06440229 -1.382032   -1.1396133\n",
+            "  -1.2710363 ]\n",
+            " [-0.20855658 -0.8674515   0.70569557  0.29010752 -1.0181789  -0.68557554\n",
+            "  -0.8266332 ]\n",
+            " [-1.6416602  -0.02296442 -0.13297297 -0.17070802  2.7686608  -1.206237\n",
+            "  -4.0400343 ]\n",
+            " [-1.1765734  -0.21219185 -0.4552377  -0.06154255  2.8737833  -1.0622357\n",
+            "  -5.1164784 ]\n",
+            " [-2.458781   -0.4912095  -1.3562037  -2.1474729  -4.390879   -0.417358\n",
+            "   2.533524  ]\n",
+            " [-2.4940174  -1.7349374  -0.6778265  -1.1934954  -4.1401906  -2.942215\n",
+            "   2.2850964 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:33<00:00, 68.38it/s]\n",
+            "  0%|          | 8/4636 [00:00<01:02, 74.34it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.95973, precision: 0.96082, recall: 0.95864, best f1: 0.96192\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:07<00:00, 68.47it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95267, precision: 0.95121, recall: 0.95414\n",
+            "\n",
+            "Epoch 9/10\n",
+            "652/652 [==============================] - 387s 593ms/step - loss: 0.0421 - sparse_accuracy: 0.9942\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 7/2318 [00:00<00:34, 67.06it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.2362447   1.0588725  -1.3776894   0.9184513  -2.5093524   1.1182936\n",
+            "  -4.66863   ]\n",
+            " [-1.3904628  -1.1564683   2.2544053  -0.09127719 -1.5517945  -1.1573662\n",
+            "  -1.38345   ]\n",
+            " [-0.23590884 -0.85949814  0.8101015   0.27884576 -1.1708126  -0.68791854\n",
+            "  -0.89900535]\n",
+            " [-1.718024   -0.04194568 -0.17376865 -0.23068936  2.8666863  -1.2285663\n",
+            "  -4.2492714 ]\n",
+            " [-1.3410612  -0.18916161 -0.5063113   0.06096312  2.9023201  -0.9914852\n",
+            "  -5.552501  ]\n",
+            " [-2.5898592  -0.5460187  -1.4850492  -2.261363   -4.572004   -0.4624259\n",
+            "   2.566814  ]\n",
+            " [-2.6162653  -1.7614523  -0.75894254 -1.2796057  -4.393255   -3.1829624\n",
+            "   2.356595  ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:34<00:00, 67.92it/s]\n",
+            "  0%|          | 7/4636 [00:00<01:08, 67.60it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.96060, precision: 0.96458, recall: 0.95666, best f1: 0.96192\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:07<00:00, 68.52it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95379, precision: 0.95682, recall: 0.95078\n",
+            "\n",
+            "Epoch 10/10\n",
+            "652/652 [==============================] - 386s 593ms/step - loss: 0.0334 - sparse_accuracy: 0.9943\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 7/2318 [00:00<00:36, 63.64it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.2437557   1.1305681  -1.457242    0.9454769  -2.6495957   1.1906059\n",
+            "  -4.9115267 ]\n",
+            " [-1.5709289  -1.2069684   2.4215953  -0.10851024 -1.6675571  -1.1687679\n",
+            "  -1.5058948 ]\n",
+            " [-0.25987864 -0.91019106  0.9088225   0.26761717 -1.2550775  -0.67161053\n",
+            "  -1.0403702 ]\n",
+            " [-1.742066   -0.06543294 -0.23343055 -0.21163312  2.9104588  -1.3176792\n",
+            "  -4.4411473 ]\n",
+            " [-1.3323218  -0.14828947 -0.6035617  -0.08256915  2.9753659  -1.0677941\n",
+            "  -5.7722683 ]\n",
+            " [-2.4939203  -0.58909076 -1.613874   -2.3861554  -4.721493   -0.580553\n",
+            "   2.6127315 ]\n",
+            " [-2.703582   -1.963836   -0.89898616 -1.2867956  -4.7780514  -3.2633827\n",
+            "   2.43832   ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:33<00:00, 68.61it/s]\n",
+            "  0%|          | 8/4636 [00:00<01:01, 74.98it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.95895, precision: 0.96500, recall: 0.95297, best f1: 0.96192\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:08<00:00, 68.11it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95347, precision: 0.95588, recall: 0.95106\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\n"
+          ],
+          "name": "stderr"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "Lj-8nSMFR7ph",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 1000
+        },
+        "outputId": "361c4dba-823a-4bbc-b316-0796383e8c75"
+      },
+      "source": [
+        "%time \n",
+        "evaluator = Evaluate()\n",
+        "batch_size = 10\n",
+        "epochs = 10\n",
+        "train_generator = data_generator(train_data, batch_size)\n",
+        "# 进行训练\n",
+        "history = model.fit_generator(train_generator.forfit(),\n",
+        "                steps_per_epoch=len(train_generator),\n",
+        "                epochs=epochs,\n",
+        "                callbacks=[evaluator])"
+      ],
+      "execution_count": 10,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "text": [
+            "CPU times: user 4 µs, sys: 0 ns, total: 4 µs\n",
+            "Wall time: 7.63 µs\n",
+            "Epoch 1/10\n",
+            "2087/2087 [==============================] - 503s 241ms/step - loss: 0.1112 - sparse_accuracy: 0.9912\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 7/2318 [00:00<00:34, 67.81it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.3419336   1.1692036  -2.4001868   0.994092   -3.9200945   1.2495209\n",
+            "  -6.276029  ]\n",
+            " [-2.061618   -1.2677294   2.4547975  -0.48481867 -2.6191437  -1.5590866\n",
+            "  -2.643722  ]\n",
+            " [-0.6829008  -1.578523    1.4779989   0.10999005 -2.1623774  -0.81835896\n",
+            "  -1.9701172 ]\n",
+            " [-1.8157731  -0.33309725 -0.8686616  -0.22441645  3.0323992  -1.6553705\n",
+            "  -5.523626  ]\n",
+            " [-1.2829099  -0.05873765 -1.450429   -0.14985994  3.0399263  -1.3996334\n",
+            "  -7.000985  ]\n",
+            " [-2.9272876  -1.1229792  -2.5681772  -3.6788304  -5.8181663  -0.78255635\n",
+            "   2.66883   ]\n",
+            " [-2.8725994  -2.799055   -1.9634203  -1.6048498  -5.818261   -3.370788\n",
+            "   2.5743165 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:34<00:00, 68.01it/s]\n",
+            "  0%|          | 7/4636 [00:00<01:10, 65.96it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.95688, precision: 0.95512, recall: 0.95864, best f1: 0.95688\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:07<00:00, 68.61it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.94593, precision: 0.94004, recall: 0.95190\n",
+            "\n",
+            "Epoch 2/10\n",
+            "2087/2087 [==============================] - 497s 238ms/step - loss: 0.0670 - sparse_accuracy: 0.9924\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\r  0%|          | 0/2318 [00:00<?, ?it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.4249738   1.028254   -3.5962768   0.98624897 -4.811372    1.2380946\n",
+            "  -7.306886  ]\n",
+            " [-2.3392975  -1.7035064   2.5839345  -1.2679205  -3.666819   -2.1422179\n",
+            "  -3.7167256 ]\n",
+            " [-0.9738937  -1.1789588   1.502605   -0.02057343 -2.5646868  -0.5995059\n",
+            "  -2.60379   ]\n",
+            " [-1.6356606  -0.7234012  -1.5340095  -0.16587926  3.0288966  -1.7574264\n",
+            "  -6.385411  ]\n",
+            " [-1.2834951   0.17278334 -2.203327   -0.1169587   3.09456    -1.6821856\n",
+            "  -7.9764223 ]\n",
+            " [-2.9900918  -1.3616891  -3.5096385  -4.2215075  -6.512898   -1.2651123\n",
+            "   2.5832658 ]\n",
+            " [-3.0298712  -2.9785662  -2.7203927  -1.5610114  -6.3913326  -3.728497\n",
+            "   2.6601703 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:33<00:00, 69.52it/s]\n",
+            "  0%|          | 7/4636 [00:00<01:06, 69.39it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.95900, precision: 0.96394, recall: 0.95411, best f1: 0.95900\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:06<00:00, 70.00it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.94667, precision: 0.94746, recall: 0.94587\n",
+            "\n",
+            "Epoch 3/10\n",
+            "2087/2087 [==============================] - 490s 235ms/step - loss: 0.0607 - sparse_accuracy: 0.9931\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "  0%|          | 8/2318 [00:00<00:32, 70.47it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.4560099   1.2619448  -4.226107    1.0040655  -5.9108167   1.2047359\n",
+            "  -8.382915  ]\n",
+            " [-2.177187   -2.0023615   2.615923   -1.8927152  -4.67261    -2.644067\n",
+            "  -4.9851985 ]\n",
+            " [-0.8776018  -1.4379002   1.791017   -0.6939459  -3.621272   -0.89748716\n",
+            "  -3.1012635 ]\n",
+            " [-1.792213   -1.2689043  -2.5271585  -0.15228656  3.0285218  -1.9951868\n",
+            "  -7.099906  ]\n",
+            " [-1.3148658   0.1064664  -3.2638676  -0.2984066   3.1122925  -1.4509894\n",
+            "  -8.5293455 ]\n",
+            " [-3.1795964  -1.951072   -4.928506   -4.617128   -7.476916   -1.4169426\n",
+            "   2.6040938 ]\n",
+            " [-2.9977856  -3.5743852  -3.707578   -1.7023079  -6.8756423  -3.927117\n",
+            "   2.6031642 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:33<00:00, 69.62it/s]\n",
+            "  0%|          | 6/4636 [00:00<01:17, 59.53it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.96129, precision: 0.96596, recall: 0.95666, best f1: 0.96129\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:05<00:00, 70.88it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95324, precision: 0.95599, recall: 0.95050\n",
+            "\n",
+            "Epoch 4/10\n",
+            "2087/2087 [==============================] - 491s 235ms/step - loss: 0.0521 - sparse_accuracy: 0.9920\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\r  0%|          | 0/2318 [00:00<?, ?it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.4962147   1.092264   -4.8642573   0.8971292  -6.9285955   1.2586234\n",
+            "  -9.591153  ]\n",
+            " [-2.6165948  -2.0392976   2.5143929  -2.730366   -5.337599   -3.1888502\n",
+            "  -6.2234197 ]\n",
+            " [-0.9447428  -1.4650607   1.6446877  -1.0081831  -4.0403705  -0.6777267\n",
+            "  -3.7649596 ]\n",
+            " [-1.9761896  -2.3043985  -3.4949586  -0.06895012  3.0167365  -2.723301\n",
+            "  -8.342583  ]\n",
+            " [-1.2617735  -0.6739586  -4.182662   -0.20059729  3.168567   -1.7786266\n",
+            "  -9.122782  ]\n",
+            " [-3.2327592  -2.5669484  -5.5955315  -5.569258   -8.013723   -1.3538399\n",
+            "   2.5861387 ]\n",
+            " [-3.009305   -3.5392017  -4.523971   -2.034786   -7.925524   -4.204086\n",
+            "   2.646634  ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:32<00:00, 70.74it/s]\n",
+            "  0%|          | 8/4636 [00:00<01:04, 72.28it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.96387, precision: 0.96428, recall: 0.96346, best f1: 0.96387\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:04<00:00, 71.54it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95122, precision: 0.94679, recall: 0.95569\n",
+            "\n",
+            "Epoch 5/10\n",
+            "2087/2087 [==============================] - 492s 236ms/step - loss: 0.0452 - sparse_accuracy: 0.9936\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\r  0%|          | 0/2318 [00:00<?, ?it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[ 1.5237460e+00  1.0706983e+00 -5.9207797e+00  7.8101575e-01\n",
+            "  -7.9030218e+00  1.1054257e+00 -1.0594975e+01]\n",
+            " [-2.8251061e+00 -2.2962692e+00  2.5274882e+00 -3.2108700e+00\n",
+            "  -6.2492962e+00 -3.7496073e+00 -6.9430795e+00]\n",
+            " [-7.8372264e-01 -1.7208778e+00  1.6383514e+00 -1.4129461e+00\n",
+            "  -4.9266324e+00 -7.7029568e-01 -4.2069130e+00]\n",
+            " [-2.1551225e+00 -2.8103495e+00 -5.0279770e+00  4.9808971e-03\n",
+            "   2.9958205e+00 -2.4279506e+00 -8.7720757e+00]\n",
+            " [-1.3655649e+00 -7.8437859e-01 -5.3637075e+00  7.5626478e-02\n",
+            "   3.2241154e+00 -1.8624557e+00 -9.4858522e+00]\n",
+            " [-3.2818799e+00 -3.0001047e+00 -6.6846919e+00 -6.1628175e+00\n",
+            "  -8.9844151e+00 -1.6550772e+00  2.5127892e+00]\n",
+            " [-3.1745698e+00 -3.1142786e+00 -5.4325614e+00 -2.0713463e+00\n",
+            "  -8.2763481e+00 -3.6385725e+00  2.7225666e+00]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:32<00:00, 71.76it/s]\n",
+            "  0%|          | 9/4636 [00:00<00:56, 81.41it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.95607, precision: 0.95661, recall: 0.95552, best f1: 0.96387\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:02<00:00, 73.88it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.94690, precision: 0.94610, recall: 0.94769\n",
+            "\n",
+            "Epoch 6/10\n",
+            "2087/2087 [==============================] - 472s 226ms/step - loss: 0.0407 - sparse_accuracy: 0.9934\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\r  0%|          | 0/2318 [00:00<?, ?it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[  1.5638196    0.7562421   -6.9802675    0.8835483   -8.702643\n",
+            "    1.2059957  -11.334194  ]\n",
+            " [ -2.6660209   -2.7115483    2.3852806   -3.7764535   -6.7599244\n",
+            "   -4.4199104   -7.6363554 ]\n",
+            " [ -0.9222515   -1.7363256    1.7032002   -1.4761959   -5.1198206\n",
+            "   -0.96691126  -4.569785  ]\n",
+            " [ -1.9774598   -3.458068    -6.5811486   -0.1799197    3.026735\n",
+            "   -2.610347    -9.656925  ]\n",
+            " [ -1.4258307   -0.22121811  -6.4865713   -0.20027095   3.242662\n",
+            "   -1.6546336  -10.155356  ]\n",
+            " [ -3.3201814   -3.821645    -7.902896    -6.3584146   -9.94455\n",
+            "   -1.9836829    2.5984373 ]\n",
+            " [ -3.0929163   -3.002963    -6.4614143   -1.7837943   -8.752552\n",
+            "   -4.2849846    2.6024084 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:27<00:00, 84.79it/s]\n",
+            "  0%|          | 10/4636 [00:00<00:50, 92.02it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.95920, precision: 0.95947, recall: 0.95892, best f1: 0.96387\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [00:54<00:00, 85.60it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.94829, precision: 0.94512, recall: 0.95148\n",
+            "\n",
+            "Epoch 7/10\n",
+            "2087/2087 [==============================] - 483s 231ms/step - loss: 0.0417 - sparse_accuracy: 0.9939\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\r  0%|          | 0/2318 [00:00<?, ?it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[  1.6129344    0.8365487   -7.800701     1.0309942   -9.520378\n",
+            "    1.1848651  -12.14786   ]\n",
+            " [ -2.501133    -3.5405335    2.357867    -4.497336    -7.490251\n",
+            "   -5.0436206   -8.278635  ]\n",
+            " [ -0.91303706  -1.8081024    1.385436    -1.5424174   -5.393334\n",
+            "   -1.2839526   -4.8447943 ]\n",
+            " [ -1.9652562   -4.44285     -7.4530582   -0.41970822   3.052068\n",
+            "   -2.9320934  -10.014679  ]\n",
+            " [ -1.2238069   -0.31757414  -7.3431354   -0.5737681    3.1429553\n",
+            "   -1.6537857  -10.909615  ]\n",
+            " [ -4.008531    -5.0594234   -9.079957    -7.199703   -11.19803\n",
+            "   -2.7444751    2.5770826 ]\n",
+            " [ -3.1407409   -3.3004832   -7.26463     -1.7605017   -9.058101\n",
+            "   -4.264076     2.6185162 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:33<00:00, 68.65it/s]\n",
+            "  0%|          | 8/4636 [00:00<01:01, 75.63it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.96140, precision: 0.96677, recall: 0.95609, best f1: 0.96387\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:06<00:00, 69.26it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95055, precision: 0.95216, recall: 0.94896\n",
+            "\n",
+            "Epoch 8/10\n",
+            "2087/2087 [==============================] - 494s 237ms/step - loss: 0.0390 - sparse_accuracy: 0.9945\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\r  0%|          | 0/2318 [00:00<?, ?it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[  1.6565995    0.762595    -8.507464     0.9305126  -10.545692\n",
+            "    1.0856054  -12.804406  ]\n",
+            " [ -2.3449113   -3.5807586    2.0782535   -5.0992      -8.33799\n",
+            "   -6.333472    -9.091354  ]\n",
+            " [ -1.1349329   -1.8386688    1.7618558   -1.791759    -5.6899943\n",
+            "   -1.687753    -5.55711   ]\n",
+            " [ -2.5005145   -5.317142    -8.705565    -0.07432786   3.061157\n",
+            "   -3.3292487  -10.151777  ]\n",
+            " [ -1.2925588   -0.8212946   -8.666706    -0.4593039    3.2070036\n",
+            "   -1.5669291  -11.386602  ]\n",
+            " [ -4.1365256   -6.093849   -10.119648    -7.834975   -12.086113\n",
+            "   -2.625613     2.5251868 ]\n",
+            " [ -3.1602554   -3.594627    -8.326764    -2.1164033   -9.350895\n",
+            "   -4.419207     2.600864  ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:32<00:00, 71.25it/s]\n",
+            "  0%|          | 8/4636 [00:00<01:00, 76.96it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.96230, precision: 0.95919, recall: 0.96544, best f1: 0.96387\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:05<00:00, 70.81it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.94980, precision: 0.94453, recall: 0.95513\n",
+            "\n",
+            "Epoch 9/10\n",
+            "2087/2087 [==============================] - 500s 239ms/step - loss: 0.0310 - sparse_accuracy: 0.9942\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\r  0%|          | 0/2318 [00:00<?, ?it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[  1.6896232    0.47469997  -9.757531     0.85518676 -11.178669\n",
+            "    1.178401   -13.737639  ]\n",
+            " [ -2.3656602   -3.3599982    1.9051522   -5.9358773   -9.412669\n",
+            "   -6.445857   -10.113859  ]\n",
+            " [ -1.3123717   -1.7307383    1.4471242   -2.0182846   -6.357879\n",
+            "   -1.6513765   -6.2319894 ]\n",
+            " [ -2.310076    -6.1974506   -9.98738     -0.22572094   2.984076\n",
+            "   -3.3299088  -10.429989  ]\n",
+            " [ -1.39491     -0.70728123  -9.456655    -0.30341366   3.1528869\n",
+            "   -1.750312   -11.87701   ]\n",
+            " [ -4.256864    -6.6195455  -11.376823    -7.9424314  -13.116266\n",
+            "   -2.871908     2.5051413 ]\n",
+            " [ -3.1614993   -3.3805244   -9.010448    -2.2834296  -10.059254\n",
+            "   -4.8072333    2.6721573 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:33<00:00, 69.49it/s]\n",
+            "  0%|          | 8/4636 [00:00<01:03, 72.62it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.96039, precision: 0.96271, recall: 0.95807, best f1: 0.96387\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:05<00:00, 70.48it/s]\n"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95476, precision: 0.95509, recall: 0.95442\n",
+            "\n",
+            "Epoch 10/10\n",
+            "2087/2087 [==============================] - 500s 239ms/step - loss: 0.0251 - sparse_accuracy: 0.9945\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\r  0%|          | 0/2318 [00:00<?, ?it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "[[  1.7390921    0.5410933  -10.389893     0.77449673 -12.027009\n",
+            "    0.8592959  -15.003208  ]\n",
+            " [ -2.7651744   -3.3042066    2.165253    -6.2753406  -10.373507\n",
+            "   -6.676684   -11.175817  ]\n",
+            " [ -1.2496921   -1.6683493    1.3483342   -2.5343227   -6.757496\n",
+            "   -1.3573662   -6.985929  ]\n",
+            " [ -2.1668751   -6.942163   -10.923688    -0.434966     2.9075434\n",
+            "   -3.4882479  -11.107994  ]\n",
+            " [ -1.5560795   -0.9767576  -10.349451    -0.34537944   3.3272512\n",
+            "   -1.3773708  -12.713387  ]\n",
+            " [ -4.003408    -7.39246    -12.195581    -8.07583    -14.135039\n",
+            "   -2.5970526    2.2597082 ]\n",
+            " [ -3.3958416   -3.348208    -9.784613    -2.2591233  -10.554992\n",
+            "   -5.353491     2.7218854 ]]\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 2318/2318 [00:30<00:00, 75.77it/s]\n",
+            "  0%|          | 9/4636 [00:00<00:55, 84.09it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "valid:  f1: 0.95938, precision: 0.96530, recall: 0.95354, best f1: 0.96387\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "100%|██████████| 4636/4636 [01:05<00:00, 71.13it/s]"
+          ],
+          "name": "stderr"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "test:  f1: 0.95492, precision: 0.95626, recall: 0.95358\n",
+            "\n"
+          ],
+          "name": "stdout"
+        },
+        {
+          "output_type": "stream",
+          "text": [
+            "\n"
+          ],
+          "name": "stderr"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "metadata": {
+        "id": "9krNX1hnR9v3",
+        "colab_type": "code",
+        "colab": {
+          "base_uri": "https://localhost:8080/",
+          "height": 136
+        },
+        "outputId": "bb61acf1-d84f-480f-8e58-dab3ad82cf1f"
+      },
+      "source": [
+        "# 预测\n",
+        "text = '公诉机关黄山市黄山区人民检察院,被告人杨1某，男，1970年5月5日出生于安徽省舒城县，汉族，家住安徽省舒城县。'\n",
+        "named_entity_recognize(text)"
+      ],
+      "execution_count": 11,
+      "outputs": [
+        {
+          "output_type": "execute_result",
+          "data": {
+            "text/plain": [
+              "[('黄山市', 'LOC'),\n",
+              " ('黄山区人民检察院', 'ORG'),\n",
+              " ('杨1', 'PER'),\n",
+              " ('安徽省', 'LOC'),\n",
+              " ('舒城县', 'LOC'),\n",
+              " ('安徽省', 'LOC'),\n",
+              " ('舒城县', 'LOC')]"
+            ]
+          },
+          "metadata": {
+            "tags": []
+          },
+          "execution_count": 11
+        }
+      ]
+    }
+  ]
+}
